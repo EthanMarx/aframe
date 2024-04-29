@@ -1,5 +1,6 @@
-from typing import Literal, Optional
+from typing import List, Literal, Optional
 
+import torch
 from torch import Tensor
 from torchtyping import TensorType
 
@@ -49,12 +50,58 @@ class SupervisedTimeDomainResNet(ResNet1D, SupervisedArchitecture):
             layers=layers,
             classes=1,
             kernel_size=kernel_size,
+            init_kernel_size=27,
             zero_init_residual=zero_init_residual,
             groups=groups,
             width_per_group=width_per_group,
             stride_type=stride_type,
             norm_layer=norm_layer,
         )
+
+
+class SupervisedTimeDomainMultiKernelResNet(SupervisedArchitecture):
+    def __init__(
+        self,
+        num_ifos: int,
+        layers: list[int],
+        kernel_size: List[int] = [3, 7, 13],
+        zero_init_residual: bool = False,
+        groups: int = 1,
+        width_per_group: int = 64,
+        stride_type: Optional[list[Literal["stride", "dilation"]]] = None,
+        norm_layer: Optional[NormLayer] = None,
+    ) -> None:
+        super().__init__()
+        resnets = torch.nn.ModuleList(
+            [
+                ResNet1D(
+                    num_ifos,
+                    layers=layers,
+                    classes=64,
+                    kernel_size=kernel,
+                    init_kernel_size=kernel,
+                    zero_init_residual=zero_init_residual,
+                    groups=groups,
+                    width_per_group=width_per_group,
+                    stride_type=stride_type,
+                    norm_layer=norm_layer,
+                )
+                for kernel in kernel_size
+            ]
+        )
+
+        self.resnets = resnets
+        self.reul1 = torch.nn.ReLU()
+        self.fc1 = torch.nn.Linear(64 * len(kernel_size), 64)
+        self.relu2 = torch.nn.ReLU()
+        self.fc2 = torch.nn.Linear(64, 1)
+
+    def forward(self, X):
+        features = torch.stack([resnet(X) for resnet in self.resnets], dim=-1)
+        features = self.reul1(features)
+        features = self.fc1(features.view(features.size(0), -1))
+        features = self.relu2(features)
+        return self.fc2(features)
 
 
 class SupervisedTimeDomainXylophone(Xylophone, SupervisedArchitecture):
