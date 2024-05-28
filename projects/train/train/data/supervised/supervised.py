@@ -65,7 +65,17 @@ class SupervisedAframeDataset(BaseAframeDataset):
 
         # inject the IFO responses and whiten
         X[mask] += kernels
-        X = self.whitener(X, psds)
+
+        X = X - X.mean(-1, keepdims=True)
+        X = torch.fft.rfft(X.double(), norm="forward", dim=-1)
+        X = X / psds**0.5
+        X[torch.isnan(X)] = 0
+        X_real = X.real
+        X_imag = X.imag
+
+        X = torch.cat((X_real, X_imag), dim=1)
+        X = X.float()
+        #X = self.whitener(X, psds)
 
         # make labels, turning off injection mask where
         # we swapped or muted

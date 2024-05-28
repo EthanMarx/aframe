@@ -281,7 +281,7 @@ class BaseAframeDataset(pl.LightningDataModule):
         # Get the signal time here and assume it's the
         # same for the validation waveforms
         self.signal_time = f.attrs["coalescence_time"]
-        num_train = len(dataset)
+        num_train = 1000 #len(dataset)
         if not rank:
             self._logger.info(f"Training on {num_train} waveforms")
 
@@ -473,7 +473,16 @@ class BaseAframeDataset(pl.LightningDataModule):
         background = unfold_windows(background, sample_size, stride=stride)
 
         X, psd = self.psd_estimator(background)
-        X_bg = self.whitener(X, psd)
+
+        
+        X_bg = X - X.mean(-1, keepdims=True)
+        X_bg = torch.fft.rfft(X_bg.double(), norm="forward", dim=-1)
+        X_bg = X_bg / psd**0.5
+        X_bg[torch.isnan(X_bg)] = 0
+        X_real = X_bg.real
+        X_imag = X_bg.imag
+        X_bg = torch.cat((X_real, X_imag), dim=1)
+        X_bg = X_bg.float()
 
         # sometimes at the end of a segment, there won't be
         # enough background kernels and so we'll have to inject
@@ -510,7 +519,17 @@ class BaseAframeDataset(pl.LightningDataModule):
             start = max_start - int(i * step)
             stop = start + kernel_size
             injected = X + signals[:, :, int(start) : int(stop)]
-            injected = self.whitener(injected, psd)
+            
+            injected = injected - injected.mean(-1, keepdims=True)
+            injected = torch.fft.rfft(injected.double(), norm="forward", dim=-1)
+            injected = injected / psd**0.5
+            injected[torch.isnan(injected)] = 0
+            injected_real = injected.real
+            injected_imag = injected.imag
+            injected = torch.cat((injected_real, injected_imag), dim=1)
+            injected = injected.float()
+            
+            #injected = self.whitener(injected, psd)
             X_inj.append(injected)
         X_inj = torch.stack(X_inj)
         return X_bg, X_inj

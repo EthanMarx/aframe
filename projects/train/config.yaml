@@ -39,7 +39,7 @@ data:
 
     # preprocessing args
     batch_size: 384
-    batches_per_epoch: 200
+    batches_per_epoch: 800
     # kernel_length:
     psd_length: 8
     # fduration:
@@ -51,7 +51,7 @@ data:
     swap_prob: 0.014
     mute_prob: 0.055
     left_pad: 0.25
-    right_pad: 0.0
+    right_pad: 0.1
     snr_sampler:
       class_path: ml4gw.distributions.PowerLaw
       init_args: 
@@ -93,5 +93,5 @@ trainer:
   accelerator: auto
   max_epochs: 200
   check_val_every_n_epoch: 1
-  log_every_n_steps: 20
+  log_every_n_steps: 100
   benchmark: true
