@@ -2,6 +2,7 @@ from typing import Literal, Optional
 
 from architectures import Architecture
 from architectures.networks import WaveNet, Xylophone
+from architectures.networks.transformer import Transformer
 from torch import Tensor
 from torchtyping import TensorType
 
@@ -112,4 +113,16 @@ class SupervisedFrequencyDomainResNet(ResNet2D, SupervisedArchitecture):
             width_per_group=width_per_group,
             stride_type=stride_type,
             norm_layer=norm_layer,
+        )
+class SupervisedTransformer(Transformer, SupervisedArchitecture):
+    def __init__(
+        self
+    ):
+        super().__init__(
+            time_steps = 3072,
+            hidden_dim = 128,
+            num_classes = 1,
+            num_heads = 4,
+            n_embd = 128,
+            num_blocks = 3,
         )
