@@ -227,11 +227,16 @@ class AframeBase(pl.LightningModule):
         optimizer = torch.optim.AdamW(
             self.model.parameters(), lr, weight_decay=self.hparams.weight_decay
         )
+
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min')
+
+        """
         scheduler = torch.optim.lr_scheduler.OneCycleLR(
             optimizer,
             pct_start=self.hparams.pct_lr_ramp,
             max_lr=self.hparams.learning_rate,
             total_steps=self.trainer.estimated_stepping_batches,
         )
-        scheduler_config = dict(scheduler=scheduler, interval="step")
+        """
+        scheduler_config = dict(scheduler=scheduler, monitor="valid_auroc")
         return dict(optimizer=optimizer, lr_scheduler=scheduler_config)

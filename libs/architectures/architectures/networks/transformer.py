@@ -190,7 +190,7 @@ class TSTransformerEncoder(nn.Module):
             self.d_model)  # [seq_length, batch_size, d_model] project input vectors to d_model dimensional space
         inp = self.pos_enc(inp)  # add positional encoding
         # NOTE: logic for padding masks is reversed to comply with definition in MultiHeadAttention, TransformerEncoderLayer
-        output = self.transformer_encoder(inp, src_key_padding_mask=~padding_masks)  # (seq_length, batch_size, d_model)
+        output = self.transformer_encoder(inp)  # (seq_length, batch_size, d_model)
         output = self.act(output)  # the output transformer encoder/decoder embeddings don't include non-linearity
         output = output.permute(1, 0, 2)  # (batch_size, seq_length, d_model)
         output = self.dropout1(output)
@@ -214,7 +214,8 @@ class Transformer(nn.Module):
         self.d_model = d_model
         self.n_heads = n_heads
 
-        self.project_inp = nn.Linear(feat_dim, d_model)
+        kernel_size = 3
+        self.project_inp = nn.Conv1d(feat_dim, d_model, kernel_size, stride=3, padding=(kernel_size - 1) // 2)
         self.pos_enc = get_pos_encoder(pos_encoding)(d_model, dropout=dropout*(1.0 - freeze), max_len=max_len)
 
         if norm == 'LayerNorm':
@@ -233,7 +234,11 @@ class Transformer(nn.Module):
         self.output_layer = self.build_output_module(d_model, max_len, num_classes)
 
     def build_output_module(self, d_model, max_len, num_classes):
-        output_layer = nn.Linear(d_model * max_len, num_classes)
+        output_layer = nn.Sequential(
+            nn.Linear(131072, 2048),
+            nn.ReLU(),
+            nn.Linear(2048, num_classes),
+        )
         # no softmax (or log softmax), because CrossEntropyLoss does this internally. If probabilities are needed,
         # add F.log_softmax and use NLLoss
         return output_layer
@@ -247,25 +252,28 @@ class Transformer(nn.Module):
             output: (batch_size, num_classes)
         """
         # aframe input is (batch_size, feat_dim, seq_length)
-        inp = X.permute(0, 2, 1)
-        B, S, F = inp.shape
-        padding_masks = torch.ones((B, S), dtype=torch.bool, device=inp.device)
-
+        
+        B, F, S = X.shape
 
         # permute because pytorch convention for transformers is [seq_length, batch_size, feat_dim]. padding_masks [batch_size, feat_dim]
-        inp = inp.permute(1, 0, 2)
-        inp = self.project_inp(inp) * math.sqrt(
-            self.d_model)  # [seq_length, batch_size, d_model] project input vectors to d_model dimensional space
+        #inp = inp.permute(1, 0, 2)
+        print(X.shape)
+        inp = self.project_inp(X) * math.sqrt(self.d_model) 
+        inp = inp.permute(2, 0, 1)
+        print(inp.shape)# [seq_length, batch_size, d_model] project input vectors to d_model dimensional space
         inp = self.pos_enc(inp)  # add positional encoding
+        #inp = inp.permute(2, 0, 1)  # [batch_size, d_model, seq_length]
+        print(inp.shape)
+       
         # NOTE: logic for padding masks is reversed to comply with definition in MultiHeadAttention, TransformerEncoderLayer
-        output = self.transformer_encoder(inp, src_key_padding_mask=~padding_masks)  # (seq_length, batch_size, d_model)
+        output = self.transformer_encoder(inp)  # (seq_length, batch_size, d_model)
         output = self.act(output)  # the output transformer encoder/decoder embeddings don't include non-linearity
         output = output.permute(1, 0, 2)  # (batch_size, seq_length, d_model)
         output = self.dropout1(output)
 
         # Output
-        output = output * padding_masks.unsqueeze(-1)  # zero-out padding embeddings
         output = output.reshape(output.shape[0], -1)  # (batch_size, seq_length * d_model)
+        print(output.shape)
         output = self.output_layer(output)  # (batch_size, num_classes)
 
         return output

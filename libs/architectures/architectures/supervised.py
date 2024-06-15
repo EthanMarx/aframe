@@ -120,12 +120,13 @@ class SupervisedTransformer(Transformer, SupervisedArchitecture):
     def __init__(self) -> None:
         super().__init__(
             feat_dim=2, 
-            max_len=3072, 
+            max_len=1024, 
             d_model=128, 
             n_heads=8, 
             num_layers=3, 
             dim_feedforward=256,
             num_classes=1,
             norm="LayerNorm",
-            pos_encoding="learnable"
+            pos_encoding="learnable",
+            dropout=0.0
         )
