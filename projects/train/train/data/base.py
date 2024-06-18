@@ -83,6 +83,7 @@ class BaseAframeDataset(pl.LightningDataModule):
     ) -> None:
         super().__init__()
         self.save_hyperparameters()
+    
         self.num_ifos = len(ifos)
 
         # Set up some of our data augmentation modules

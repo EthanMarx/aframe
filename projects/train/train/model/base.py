@@ -52,9 +52,7 @@ class AframeBase(pl.LightningModule):
         self.verbose = verbose
         self._logger = self.get_logger()
         self.save_hyperparameters(ignore=["arch", "metric"])
-
-        self.save_hyperparameters(ignore=["arch", "metric"])
-
+    
     def get_logger(self):
         logger_name = "AframeModel"
         logger = logging.getLogger(logger_name)
