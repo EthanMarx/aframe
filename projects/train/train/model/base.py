@@ -8,6 +8,7 @@ from architectures import Architecture
 
 from train.callbacks import ModelCheckpoint, SaveAugmentedBatch
 from train.metrics import TimeSlideAUROC
+from lightning.pytorch.utilities import grad_norm
 
 Tensor = torch.Tensor
 
@@ -151,6 +152,13 @@ class AframeBase(pl.LightningModule):
             logger=True,
         )
         return loss
+    
+    def on_before_optimizer_step(self, optimizer):
+        # Compute the 2-norm for each layer
+        # If using mixed precision, the gradients are already unscaled here
+        norms = grad_norm(self.model, norm_type=2)
+        self.log_dict(norms)
+
 
     def validation_step(self, batch, _) -> None:
         shift, X_bg, X_inj = batch
