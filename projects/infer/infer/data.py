@@ -7,7 +7,7 @@ from zlib import adler32
 import h5py
 import numpy as np
 from ledger.events import EventSet, RecoveredInjectionSet
-from ledger.injections import LigoResponseSet
+from ledger.injections import InterferometerResponseSet, waveform_class_factory
 from ratelimiter import RateLimiter
 
 
@@ -48,10 +48,16 @@ class Sequence:
                 Rate at which to send requests in Hz
         """
         self.background_fname = background_fname
-        self.ifos = ifos
         self.inference_sampling_rate = inference_sampling_rate
         self.batch_size = batch_size
         self.rate = rate
+        self.ifos = ifos
+
+        if len(ifos) != len(shifts):
+            raise ValueError(
+                "Number of ifos must match number of shifts"
+                f"got {len(ifos)} ifos and {len(shifts)} shifts"
+            )
 
         # read some of the metadata from our background file
         with h5py.File(background_fname, "r") as f:
@@ -65,7 +71,14 @@ class Sequence:
         # if there are no injections for
         # this shift, set it to None so
         # we don't run inference on injections
-        injection_set = LigoResponseSet.read(
+
+        cls = waveform_class_factory(
+            ifos,
+            InterferometerResponseSet,
+            "ResponseSet",
+        )
+
+        injection_set = cls.read(
             injection_set_fname,
             start=self.t0,
             end=self.t0 + self.duration,
@@ -124,14 +137,20 @@ class Sequence:
     def num_pad(self):
         # the number of zeros we need to pad the last batch
         # to make it a full batch
-        return self.step_size - self.remainder
+        return (self.step_size - self.remainder) % self.step_size
 
     @property
-    def num_slice(self):
-        # the number of inference requests we need to slice
-        # off the end of the sequences to remove the dummy data
-        # from the last batch
-        return self.num_pad // self.stride
+    def slice(self) -> slice:
+        """
+        The number of inference requests we need to slice
+        off the end of the sequences to remove
+        the dummy data from the last batch
+        """
+
+        # if num_pad is 0 don't slice anything
+        num_slice = self.num_pad // self.stride
+        end = -num_slice if num_slice else None
+        return slice(end)
 
     def __len__(self):
         # this include excess data at end of sequence that can't
@@ -164,17 +183,25 @@ class Sequence:
                 x = []
                 for ifo, shift in zip(self.ifos, self.shifts):
                     start = shift + i * self.step_size
+
+                    # for all but last batch just
+                    # increase by step size
                     end = start + self.step_size
-                    if last:
+
+                    # if this is the last batch
+                    # and we need to pad it
+                    # just step by the remainder
+                    if last and self.remainder:
                         end = start + self.remainder
+
                     data = f[ifo][start:end]
                     # if this is the last batch
                     # possibly pad it to make it a full batch
                     if last:
                         data = np.pad(data, (0, self.num_pad), "constant")
+
                     x.append(data)
                 x = np.stack(x).astype(np.float32)
-
                 # if there are any injections for this shift,
                 # inject waveforms into a copy of the background
                 x_inj = None
@@ -207,10 +234,10 @@ class Sequence:
         # sequences have completed, return them both,
         # slicing off the dummy data from the last batch
         if self.done:
-            background = self._sequences[self.id][: -self.num_slice]
+            background = self._sequences[self.id][self.slice]
             foreground = None
             if self.injection_set is not None:
-                foreground = self._sequences[self.id + 1][: -self.num_slice]
+                foreground = self._sequences[self.id + 1][self.slice]
             return background, foreground
 
     def recover(self, foreground: EventSet) -> RecoveredInjectionSet:

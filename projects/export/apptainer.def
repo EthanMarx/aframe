@@ -4,7 +4,7 @@ Stage: build
 
 %files
 . /opt/aframe/projects/export/
-../utils /opt/aframe/projects/utils
+../../libs/utils /opt/aframe/libs/utils
 ../../aframe /opt/aframe/aframe
 ../../pyproject.toml /opt/aframe/pyproject.toml
 ../../ml4gw /opt/aframe/ml4gw
@@ -33,6 +33,10 @@ Stage: final
 /opt/aframe /opt/aframe
 
 %post
+apt-get update
+apt-get install -y --no-install-recommends git
+apt-get clean
+
 # install pytest so we can run 
 # unit tests during CI inside container
 cd /opt/aframe/projects/export

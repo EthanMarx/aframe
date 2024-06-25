@@ -17,7 +17,7 @@ train = "train.main:main"
 # core dependencies
 python = ">=3.9,<3.11"
 torchmetrics = "^0.11"
-lightning = "^2.0"
+lightning = "<2.3.0"
 jsonargparse = {version = "^4.29", extras = ["signatures"]}
 
 # plotting/logging dependencies
@@ -38,7 +38,7 @@ fsspec = {version = "^2024", extras=["s3"]}
 urllib3 = ">=1.25.4,<1.27"
 
 # local deps
-utils = {path = "../utils", develop = true}
+utils = {path = "../../libs/utils", develop = true}
 ml4gw = {path = "../../ml4gw", develop = true}
 aframe = {path = "../..", develop = true}
 ledger = {path = "../../libs/ledger", develop = true}

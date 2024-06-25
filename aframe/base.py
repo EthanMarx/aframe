@@ -230,7 +230,7 @@ class AframeRayTask(AframeSingularityTask):
 
         return env
 
-    def sandbox_before_run(self):
+    def sandbox_pre_run(self):
         """
         Method called before the main `run` method to set up
         and launch the ray cluster
@@ -239,9 +239,10 @@ class AframeRayTask(AframeSingularityTask):
             self.cluster = None
             return
 
+        # TODO: add support for specifying chart parth by hand?
         cluster = RayCluster(
             self.name,
-            chart_path="/home/ethan.marx/projects/aframev2/charts/raycluster/",
+            chart_path=str(root / "charts" / "raycluster"),
         )
         cluster = self.configure_cluster(cluster)
         self.cluster = cluster
@@ -249,7 +250,7 @@ class AframeRayTask(AframeSingularityTask):
         cluster.wait()
         self.ip = cluster.get_ip()
 
-    def sandbox_after_run(self):
+    def sandbox_post_run(self):
         """
         Method called after the main `run` method to
         tear down the ray cluster
