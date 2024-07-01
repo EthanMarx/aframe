@@ -30,12 +30,11 @@ class DenseResidual(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         residual = self.shortcut(x)
-
-        x = self.activation(self.layer(x))
+        x = self.layer(x)
         x = x.transpose(1, 2)
-
         x = self.norm(x)
         x = x.transpose(1, 2)
+        x = self.activation(x)
         return x + residual
 
 
@@ -53,7 +52,7 @@ class DenseResNet(nn.Module):
         self.num_ifos = num_ifos
         self.n_freq = n_freq
 
-        self.downsample = nn.Linear(n_freq, 128)
+        self.downsample = nn.Linear(n_freq, 256)
         self.initial_proj = nn.Linear(2 * num_ifos, hidden_dims[0])
         self.blocks = nn.ModuleList()
         for i in range(len(hidden_dims) - 1):
@@ -61,7 +60,7 @@ class DenseResNet(nn.Module):
                 DenseResidual(hidden_dims[i], hidden_dims[i + 1], norm_layer)
             )
 
-        self.classifier = nn.Linear(hidden_dims[-1] * 128, classes)
+        self.classifier = nn.Linear(hidden_dims[-1] * 256, classes)
 
         if zero_init_residual:
             for m in self.modules():
@@ -72,6 +71,7 @@ class DenseResNet(nn.Module):
         x = self.downsample(x)
         x = x.permute(0, 2, 1)
         x = self.initial_proj(x)
+
         for block in self.blocks:
             x = block(x)
 
