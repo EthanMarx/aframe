@@ -1,7 +1,7 @@
-from typing import Literal, Optional
+from typing import List, Literal, Optional
 
 from architectures import Architecture
-from architectures.networks import WaveNet, Xylophone
+from architectures.networks import DenseResNet, WaveNet, Xylophone
 from torch import Tensor
 from torchtyping import TensorType
 
@@ -137,4 +137,23 @@ class SupervisedSpectrogramDomainResNet(ResNet2D, SupervisedArchitecture):
             width_per_group=width_per_group,
             stride_type=stride_type,
             norm_layer=norm_layer,
+        )
+
+
+class SupervisedDenseNet(DenseResNet, SupervisedArchitecture):
+    def __init__(
+        self,
+        num_ifos: int,
+        n_freq: int,
+        hidden_dims: List[int],
+        norm_layer: NormLayer,
+        zero_init_residual: bool = True,
+    ) -> None:
+        super().__init__(
+            num_ifos,
+            n_freq,
+            hidden_dims,
+            classes=1,
+            norm_layer=norm_layer,
+            zero_init_residual=zero_init_residual,
         )
