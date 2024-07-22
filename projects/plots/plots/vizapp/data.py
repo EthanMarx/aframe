@@ -77,12 +77,7 @@ class DataManager:
 
     @property
     def veto_options(self):
-        return [
-            "GATES",
-            "CAT1",
-            "CAT2",
-            "CAT3",
-        ]
+        return ["GATES"]
 
     def get_veto_selecter(self):
         return MultiChoice(

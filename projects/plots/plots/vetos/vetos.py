@@ -9,7 +9,7 @@ from gwpy.segments import DataQualityDict
 # TODO: gating should really be applied directly to the strain
 
 
-CATEGORIES = ["CAT1", "CAT2", "CAT3", "GATES"]
+CATEGORIES = ["GATES"]  # ["CAT1", "CAT2", "CAT3", "GATES"]
 
 
 def gates_to_veto_segments(path: Path):
@@ -50,7 +50,7 @@ class VetoParser:
         self.logger = logging.getLogger("vizapp")
         self.vetos = DataQualityDict.from_veto_definer_file(veto_definer_file)
         self.logger.info("Populating vetos")
-        self.vetos.populate(segments=[[start, stop]], verbose=True)
+        # self.vetos.populate(segments=[[start, stop]], verbose=True)
         self.logger.info("Vetos populated")
         self.gate_paths = gate_paths
         self.ifos = ifos

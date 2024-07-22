@@ -81,6 +81,7 @@ class App:
         tabs = []
 
         for page in [Summary, Analysis]:
+            self.logger.info(f"Creating page: {page.__name__}")
             page: "Page" = page(self)
             self.pages.append(page)
 
@@ -90,7 +91,7 @@ class App:
 
         self.veto_selecter = self.data_manager.get_veto_selecter()
         self.veto_selecter.on_change("value", self.update)
-        self.data_manager.update_vetos(None, None, [])
+        self.update(None, None, [])
 
         # set up a header with a title and the selecter
         title = Div(text="<h1>aframe Performance Dashboard</h1>", width=500)
