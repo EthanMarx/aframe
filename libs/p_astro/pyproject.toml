@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "p-astro"
+version = "0.1.0"
+description = ""
+authors = ["Will Benoit", "Ethan Marx <emarx@mit.edu>"]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.11"
+ledger = {path = "../ledger", develop = true}
+astropy = ">5.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
