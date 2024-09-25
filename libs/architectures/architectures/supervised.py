@@ -1,10 +1,11 @@
 from typing import Literal, Optional
 
 from architectures import Architecture
-from architectures.networks import WaveNet, Xylophone
+from architectures.networks import WaveNet, Xylophone, S4D
 from ml4gw.nn.resnet.resnet_1d import NormLayer, ResNet1D
 from ml4gw.nn.resnet.resnet_2d import ResNet2D
 from torch import Tensor
+import torch.nn as nn
 from torchtyping import TensorType
 
 # need this for type checking
@@ -137,3 +138,82 @@ class SupervisedSpectrogramDomainResNet(ResNet2D, SupervisedArchitecture):
             stride_type=stride_type,
             norm_layer=norm_layer,
         )
+
+
+class StateSpace(SupervisedArchitecture):
+    def __init__(
+        self,
+        num_ifos: int,
+        d_model: int = 256,
+        n_layers: int =4,
+        dropout: float = 0.2,
+        lr: float = 0.001,
+        prenorm=False,
+    ) -> None:
+        super().__init__()
+
+        self.prenorm = prenorm
+
+        # Linear encoder (d_input = 1 for grayscale and 3 for RGB)
+        self.encoder = nn.Linear(num_ifos, d_model)
+
+        # Stack S4 layers as residual blocks
+        self.s4_layers = nn.ModuleList()
+        self.norms = nn.ModuleList()
+        self.dropouts = nn.ModuleList()
+        for _ in range(n_layers):
+            self.s4_layers.append(
+                S4D(d_model, dropout=dropout, transposed=True, lr=min(0.001, lr))
+            )
+            self.norms.append(nn.LayerNorm(d_model))
+            self.dropouts.append(nn.Dropout2d(dropout))
+
+        # classifier head
+        self.pool = nn.AdaptiveAvgPool1d(1)
+        self.decoder = nn.Linear(d_model, d_model // 2)
+        self.relu = nn.ReLU()
+        classifier = nn.Linear(d_model // 2, 1)
+        self.classifier  = nn.Sequential(self.decoder, self.relu, classifier)
+
+
+    def forward(self, x):
+        """
+        Input x is shape (B, num_ifos, L)
+        """
+        x = x.transpose(-1, -2)  # (B, num_ifos, L) -> (B, L, num_ifos)
+        x = self.encoder(x)  # (B, L, d_input) -> (B, L, d_model)
+
+        x = x.transpose(-1, -2)  # (B, L, d_model) -> (B, d_model, L)
+        for layer, norm, dropout in zip(self.s4_layers, self.norms, self.dropouts):
+            # Each iteration of this loop will map (B, d_model, L) -> (B, d_model, L)
+
+            z = x
+            if self.prenorm:
+                # Prenorm
+                z = norm(z.transpose(-1, -2)).transpose(-1, -2)
+
+            # Apply S4 block: we ignore the state input and output
+            z, _ = layer(z)
+
+            # Dropout on the output of the S4 block
+            z = dropout(z)
+
+            # Residual connection
+            x = z + x
+
+            if not self.prenorm:
+                # Postnorm
+                x = norm(x.transpose(-1, -2)).transpose(-1, -2)
+
+    
+        # adaptive average pooling over the sequence length
+        # and classification
+        x = self.pool(x)
+        x = x.transpose(-1, -2)
+        x = x.squeeze(-1)
+        x = self.classifier(x)
+        x = x.squeeze(-1) # (B, d_model) -> (B, d_output)
+        return x
+
+        
+        

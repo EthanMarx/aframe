@@ -48,6 +48,7 @@ bayesian-optimization = "^1.4.3"
 filelock = "^3.13.1"
 s3fs = "^2024"
 lightray = "^0.1.5"
+einops = "^0.8.0"
 
 [[tool.poetry.source]]
 name = "torch"
