@@ -1,11 +1,11 @@
 from typing import Literal, Optional
 
+import torch.nn as nn
 from architectures import Architecture
-from architectures.networks import WaveNet, Xylophone, S4D
+from architectures.networks import S4D, WaveNet, Xylophone
 from ml4gw.nn.resnet.resnet_1d import NormLayer, ResNet1D
 from ml4gw.nn.resnet.resnet_2d import ResNet2D
 from torch import Tensor
-import torch.nn as nn
 from torchtyping import TensorType
 
 # need this for type checking
@@ -145,7 +145,7 @@ class StateSpace(SupervisedArchitecture):
         self,
         num_ifos: int,
         d_model: int = 256,
-        n_layers: int =4,
+        n_layers: int = 4,
         dropout: float = 0.2,
         lr: float = 0.001,
         prenorm=False,
@@ -163,7 +163,12 @@ class StateSpace(SupervisedArchitecture):
         self.dropouts = nn.ModuleList()
         for _ in range(n_layers):
             self.s4_layers.append(
-                S4D(d_model, dropout=dropout, transposed=True, lr=min(0.001, lr))
+                S4D(
+                    d_model,
+                    dropout=dropout,
+                    transposed=True,
+                    lr=min(0.001, lr),
+                )
             )
             self.norms.append(nn.LayerNorm(d_model))
             self.dropouts.append(nn.Dropout2d(dropout))
@@ -173,8 +178,7 @@ class StateSpace(SupervisedArchitecture):
         self.decoder = nn.Linear(d_model, d_model // 2)
         self.relu = nn.ReLU()
         classifier = nn.Linear(d_model // 2, 1)
-        self.classifier  = nn.Sequential(self.decoder, self.relu, classifier)
-
+        self.classifier = nn.Sequential(self.decoder, self.relu, classifier)
 
     def forward(self, x):
         """
@@ -184,7 +188,9 @@ class StateSpace(SupervisedArchitecture):
         x = self.encoder(x)  # (B, L, d_input) -> (B, L, d_model)
 
         x = x.transpose(-1, -2)  # (B, L, d_model) -> (B, d_model, L)
-        for layer, norm, dropout in zip(self.s4_layers, self.norms, self.dropouts):
+        for layer, norm, dropout in zip(
+            self.s4_layers, self.norms, self.dropouts
+        ):
             # Each iteration of this loop will map (B, d_model, L) -> (B, d_model, L)
 
             z = x
@@ -205,15 +211,11 @@ class StateSpace(SupervisedArchitecture):
                 # Postnorm
                 x = norm(x.transpose(-1, -2)).transpose(-1, -2)
 
-    
         # adaptive average pooling over the sequence length
         # and classification
         x = self.pool(x)
         x = x.transpose(-1, -2)
         x = x.squeeze(-1)
         x = self.classifier(x)
-        x = x.squeeze(-1) # (B, d_model) -> (B, d_output)
+        x = x.squeeze(-1)  # (B, d_model) -> (B, d_output)
         return x
-
-        
-        

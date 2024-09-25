@@ -46,22 +46,27 @@ class StateSpaceAframe(SupervisedAframe):
             params, lr, weight_decay=self.hparams.weight_decay
         )
 
-
-         # Add parameters with special hyperparameters
-        hps = [getattr(p, "_optim") for p in all_parameters if hasattr(p, "_optim")]
+        # Add parameters with special hyperparameters
         hps = [
-            dict(s) for s in sorted(list(dict.fromkeys(frozenset(hp.items()) for hp in hps)))
+            getattr(p, "_optim")
+            for p in all_parameters
+            if hasattr(p, "_optim")
+        ]
+        hps = [
+            dict(s)
+            for s in sorted(
+                list(dict.fromkeys(frozenset(hp.items()) for hp in hps))
+            )
         ]  # Unique dicts
         for hp in hps:
-            params = [p for p in all_parameters if getattr(p, "_optim", None) == hp]
-            optimizer.add_param_group(
-                {"params": params, **hp}
-            )
+            params = [
+                p for p in all_parameters if getattr(p, "_optim", None) == hp
+            ]
+            optimizer.add_param_group({"params": params, **hp})
 
-        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, self.trainer.estimated_stepping_batches)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, self.trainer.estimated_stepping_batches
+        )
 
         scheduler_config = dict(scheduler=scheduler, interval="step")
         return dict(optimizer=optimizer, lr_scheduler=scheduler_config)
-
-
-    
