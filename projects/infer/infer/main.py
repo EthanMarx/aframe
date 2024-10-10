@@ -52,6 +52,7 @@ def infer(
             sequence_id=sequence.id,
             sequence_start=sequence_start,
             sequence_end=sequence_end,
+            timeout=int(6e10)
         )
 
         if x_inj is not None:
@@ -63,6 +64,7 @@ def infer(
                 sequence_id=sequence.id + 1,
                 sequence_start=sequence_start,
                 sequence_end=sequence_end,
+                timeout=int(6e10)
             )
 
         # wait for the first response to come back

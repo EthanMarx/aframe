@@ -14,13 +14,13 @@ jsonargparse = "^4.24"
 tqdm = "^4.66"
 
 # submodules
-ml4gw-hermes = {version=">=0.2.0", extras = ["serve", "torch"]}
+#ml4gw-hermes = {version=">=0.2.0", extras = ["serve", "torch"]}
 
 # local deps
 aframe = {path = "../../", develop = true}
 utils = {path = "../../libs/utils", develop = true}
 ledger = {path = "../../libs/ledger", develop = true}
-
+ml4gw-hermes = {path = "../../hermes", develop = true}
 
 # workaround for: https://github.com/python-poetry/poetry-plugin-export/issues/183
 urllib3 = ">=1.25.4,<1.27"

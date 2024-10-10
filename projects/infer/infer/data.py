@@ -172,6 +172,7 @@ class Sequence:
             # two calls during a given period to help account
             # for the time required to e.g. serialize the data
             # into inference requests
+            logging.debug(f"Rate limiting to {self.rate} Hz")
             limiter = RateLimiter(max_calls=2, period=3.5 / self.rate)
         else:
             limiter = nullcontext()

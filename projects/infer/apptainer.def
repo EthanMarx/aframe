@@ -9,6 +9,7 @@ Stage: build
 . /opt/aframe/projects/infer
 ../../libs/utils /opt/aframe/libs/utils
 ../../libs/ledger /opt/aframe/libs/ledger
+../../hermes /opt/aframe/hermes
 ../../aframe /opt/aframe/aframe
 ../../pyproject.toml /opt/aframe/pyproject.toml
 

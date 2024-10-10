@@ -53,7 +53,7 @@ class InferBase(
         # the condor concurrency;
         # multiply by two since there seems to be
         # some latency in laws job submission
-        self.parallel_jobs = int(self.num_clients * 2)
+        self.parallel_jobs = int(self.num_clients * 4)
 
     @property
     def default_image(self):
@@ -169,11 +169,12 @@ class InferBase(
 
     def run(self):
         from hermes.aeriel.client import InferenceClient
-
+        from utils.logging import configure_logging
         from infer.data import Sequence
         from infer.main import infer
         from infer.postprocess import Postprocessor
 
+        configure_logging(verbose=True)
         ip = os.getenv("AFRAME_TRITON_IP")
         self.tmp_dir.mkdir(exist_ok=True, parents=True)
         fname, shifts = self.branch_data
@@ -202,6 +203,7 @@ class InferBase(
             model_name=self.model_name,
             model_version=self.model_version,
             callback=sequence,
+            #verbose=True,
         )
 
         with client:
