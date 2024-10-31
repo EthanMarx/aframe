@@ -20,10 +20,12 @@ class PositionalEncoding(nn.Module):
         )
         self.PE[:, 0::2] = np.sin(self.PE[:, 0::2])
         self.PE[:, 1::2] = np.cos(self.PE[:, 1::2])
+
+        self.register_buffer("pe", self.PE)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, input):
-        out = self.dropout(input + self.PE)
+        out = self.dropout(input + self.pe)
         return out
 
 
@@ -57,7 +59,7 @@ class Transformer(nn.Module):
         self.avgpool = nn.AvgPool1d(kernel_size=3, stride=2, padding=1)
 
         self.pos_encoder = PositionalEncoding(
-            d_model, maxlen=max_len, dropout=dropout
+            d_model, maxlen=512, dropout=dropout
         )
         self.encoder_layer = nn.TransformerEncoderLayer(
             d_model=self.d_model,
@@ -74,9 +76,9 @@ class Transformer(nn.Module):
         self.fc = nn.Linear(self.d_model, 1)
 
     def forward(self, x: Tensor) -> Tensor:
-        x = self.pos_encoder(x)
         x = self.conv1d(x)
         x = self.avgpool(x)
+        x = self.pos_encoder(x)
 
         # rearrange data dormat to (batch, seq, features)
         x = x.permute(0, 2, 1)
