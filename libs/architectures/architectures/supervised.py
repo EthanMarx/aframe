@@ -1,7 +1,7 @@
 from typing import Literal, Optional
 
 from architectures import Architecture
-from architectures.networks import S4Model, WaveNet, Xylophone
+from architectures.networks import S4Model, Transformer, WaveNet, Xylophone
 from jaxtyping import Float
 from ml4gw.nn.resnet.resnet_1d import NormLayer, ResNet1D
 from ml4gw.nn.resnet.resnet_2d import ResNet2D
@@ -167,4 +167,28 @@ class SupervisedS4Model(S4Model, SupervisedArchitecture):
             dt_min=dt_min,
             dt_max=dt_max,
             lr=lr,
+        )
+
+
+class SupervisedTransformer(Transformer, SupervisedArchitecture):
+    def __init__(
+        self,
+        kernel_length: float,
+        sample_rate: float,
+        num_ifos: int = 2,
+        d_model: int = 128,
+        num_heads: int = 8,
+        dropout: float = 0.1,
+        num_layers: int = 18,
+        prenorm: bool = True,
+    ) -> None:
+        length = int(kernel_length * sample_rate)
+        super().__init__(
+            max_len=length,
+            num_ifos=num_ifos,
+            d_model=d_model,
+            num_heads=num_heads,
+            dropout=dropout,
+            num_layers=num_layers,
+            prenorm=prenorm,
         )
