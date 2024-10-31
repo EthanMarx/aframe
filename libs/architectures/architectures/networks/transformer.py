@@ -48,7 +48,7 @@ class Transformer(nn.Module):
 
         self.conv1d = nn.Conv1d(
             in_channels=num_ifos,
-            out_channels=self.transformer_channels,
+            out_channels=self.d_model,
             kernel_size=7,
             stride=3,
             padding=3,
