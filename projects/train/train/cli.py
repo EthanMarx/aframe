@@ -10,6 +10,7 @@ class AframeCLI(LightningCLI):
         # hack into init to hardcode
         # the WandbSaveConfig callback
         kwargs["save_config_callback"] = WandbSaveConfig
+        kwargs["save_config_kwargs"] = {"overwrite": True}
         super().__init__(*args, **kwargs)
 
     def add_arguments_to_parser(self, parser):
