@@ -173,9 +173,9 @@ class SupervisedS4Model(S4Model, SupervisedArchitecture):
 class SupervisedTransformer(Transformer, SupervisedArchitecture):
     def __init__(
         self,
-        kernel_length: float,
+        num_ifos: int,
         sample_rate: float,
-        num_ifos: int = 2,
+        kernel_length: float,
         d_model: int = 128,
         num_heads: int = 8,
         dropout: float = 0.1,
