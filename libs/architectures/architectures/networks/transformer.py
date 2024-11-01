@@ -74,9 +74,7 @@ class Transformer(nn.Module):
         )
         self.avgpool = nn.AvgPool1d(kernel_size=3, stride=2, padding=1)
 
-        self.pos_encoder = PositionalEncoding(
-            d_model, maxlen=512, dropout=dropout
-        )
+        self.pos_encoder = PositionalEncoding(d_model, max_len=512)
         self.encoder_layer = nn.TransformerEncoderLayer(
             d_model=self.d_model,
             nhead=self.num_heads,

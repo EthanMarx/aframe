@@ -3,9 +3,10 @@ from typing import Literal, Optional
 from architectures import Architecture
 from architectures.networks import S4Model, Transformer, WaveNet, Xylophone
 from jaxtyping import Float
+from torch import Tensor
+
 from ml4gw.nn.resnet.resnet_1d import NormLayer, ResNet1D
 from ml4gw.nn.resnet.resnet_2d import ResNet2D
-from torch import Tensor
 
 
 class SupervisedArchitecture(Architecture):
@@ -182,9 +183,7 @@ class SupervisedTransformer(Transformer, SupervisedArchitecture):
         num_layers: int = 18,
         prenorm: bool = True,
     ) -> None:
-        length = int(kernel_length * sample_rate)
         super().__init__(
-            max_len=length,
             num_ifos=num_ifos,
             d_model=d_model,
             num_heads=num_heads,
