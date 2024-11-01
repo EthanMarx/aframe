@@ -1,39 +1,59 @@
-import numpy as np
+import math
+
 import torch
 import torch.nn as nn
 from torch import Tensor
 
 
 class PositionalEncoding(nn.Module):
+    def __init__(self, d_model: int, max_len: int):
+        super(PositionalEncoding, self).__init__()
+
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(
+            torch.arange(0, d_model, 2).float() * (-math.log(10000) / d_model)
+        )
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+
+        pe = pe.transpose(0, 1)
+        self.register_buffer("pe", pe)
+
+    def forward(self, x):
+        x = x + self.pe
+        return x
+
+
+class ConvBlock(nn.Module):
     def __init__(
         self,
-        d_model: int,
-        maxlen: int,
-        dropout: float = 0.1,
+        in_channels: int,
+        out_channels: int,
     ):
-        super(PositionalEncoding, self).__init__()
-        self.PE = torch.tensor(
-            [
-                [pos / 1000 ** (i // 2 * 2 / d_model) for pos in range(maxlen)]
-                for i in range(d_model)
-            ]
+        super(ConvBlock, self).__init__()
+        self.conv = nn.Conv1d(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=7,
+            stride=3,
+            padding=3,
+            bias=False,
         )
-        self.PE[:, 0::2] = np.sin(self.PE[:, 0::2])
-        self.PE[:, 1::2] = np.cos(self.PE[:, 1::2])
+        self.norm = nn.LayerNorm(out_channels)
+        self.relu = nn.ReLU()
 
-        self.register_buffer("pe", self.PE)
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, input):
-        out = self.dropout(input + self.pe)
-        return out
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.norm(x)
+        x = self.relu(x)
+        return x
 
 
 class Transformer(nn.Module):
     def __init__(
         self,
         num_ifos: int,
-        max_len: int,
         d_model: int = 128,
         num_heads: int = 8,
         dropout: float = 0.1,
@@ -48,13 +68,9 @@ class Transformer(nn.Module):
         self.num_ifos = num_ifos
         self.dropout = dropout
 
-        self.conv1d = nn.Conv1d(
+        self.conv_proj = ConvBlock(
             in_channels=num_ifos,
             out_channels=self.d_model,
-            kernel_size=7,
-            stride=3,
-            padding=3,
-            bias=False,
         )
         self.avgpool = nn.AvgPool1d(kernel_size=3, stride=2, padding=1)
 
@@ -76,7 +92,7 @@ class Transformer(nn.Module):
         self.fc = nn.Linear(self.d_model, 1)
 
     def forward(self, x: Tensor) -> Tensor:
-        x = self.conv1d(x)
+        x = self.conv_proj(x)
         x = self.avgpool(x)
         x = self.pos_encoder(x)
 
