@@ -25,28 +25,47 @@ class PositionalEncoding(nn.Module):
         return x
 
 
+class LearnablePositionalEncoding(nn.Module):
+    def __init__(self, d_model: int, max_len: int):
+        self.pe = nn.Parameter(
+            torch.empty(1, d_model, max_len).normal_(std=0.02)
+        )
+
+    def forward(self, x):
+        return x + self.pe
+
+
 class ConvBlock(nn.Module):
     def __init__(
         self,
         in_channels: int,
         out_channels: int,
+        kernel_size: int,
+        stride: int,
     ):
         super(ConvBlock, self).__init__()
         self.conv = nn.Conv1d(
             in_channels=in_channels,
             out_channels=out_channels,
-            kernel_size=7,
-            stride=3,
+            kernel_size=kernel_size,
+            stride=stride,
             padding=3,
-            bias=False,
+            bias=True,
         )
         self.norm = nn.LayerNorm(out_channels)
-        self.relu = nn.ReLU()
+        self.act = nn.GELU()
+        self.conv_last = nn.Conv1d(
+            in_channels=out_channels,
+            out_channels=out_channels,
+            kernel_size=1,
+            bias=True,
+        )
 
     def forward(self, x):
         x = self.conv(x)
-        x = self.norm(x)
-        x = self.relu(x)
+        x = self.norm(x.transpose(2, 1)).transpose(2, 1)
+        x = self.act(x)
+        x = self.conv_last(x)
         return x
 
 
@@ -68,9 +87,12 @@ class Transformer(nn.Module):
         self.num_ifos = num_ifos
         self.dropout = dropout
 
-        self.conv_proj = ConvBlock(
+        self.conv_proj = nn.Conv1d(
             in_channels=num_ifos,
-            out_channels=self.d_model,
+            out_channels=d_model,
+            kernel_size=3,
+            stride=3,
+            bias=False,
         )
         self.avgpool = nn.AvgPool1d(kernel_size=3, stride=2, padding=1)
 
