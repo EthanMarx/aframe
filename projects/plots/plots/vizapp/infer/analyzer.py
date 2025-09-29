@@ -216,14 +216,24 @@ class EventAnalyzer:
 
         return freqs, ffts
 
-    def qscan(self, strain: Dict[str, np.ndarray]):
+    def qscan(
+        self, strain: Dict[str, np.ndarray], durs: tuple[int] = [0.1, 1, 4]
+    ):
         qscans = []
         for ifo in self.ifos:
             data = strain[ifo]
             ts = TimeSeries(data, times=self.whitened_times)
-            ts = ts.crop(-3, 3)
-            qscan = ts.q_transform(
-                logf=True, frange=(32, 1024), whiten=False, outseg=(-1, 1)
+            ts = ts.crop(-max(durs) - 2, 4)
+            qscans.extend(
+                [
+                    ts.q_transform(
+                        logf=True,
+                        gps=0,
+                        frange=(32, 1024),
+                        whiten=False,
+                        outseg=(-dur, 1.5),
+                    )
+                    for dur in durs
+                ]
             )
-            qscans.append(qscan)
         return qscans

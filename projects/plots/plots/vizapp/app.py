@@ -32,7 +32,6 @@ class App:
         kernel_length: float,
         psd_length: float,
         highpass: float,
-        lowpass: float,
         batch_size: int,
         sample_rate: float,
         inference_sampling_rate: float,
@@ -41,6 +40,7 @@ class App:
         valid_frac: float,
         fftlength: float,
         device: str = "cpu",
+        lowpass: Optional[float] = None,
         vetos: Optional[VETO_CATEGORIES] = None,
         verbose: bool = False,
     ) -> None:

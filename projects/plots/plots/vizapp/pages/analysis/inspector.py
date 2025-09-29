@@ -150,33 +150,35 @@ class InspectorPlot:
             source=self.spectrogram_source,
         )
         return column(
-            row(self.timeseries_plot, self.spectrogram_plot),
-            self.frequencyseries_plot,
+            row(self.timeseries_plot, self.frequencyseries_plot),
+            self.spectrogram_plot,
         )
 
-    def plot(self, qscans: tuple["gwpy.spectrogram.Spectrogram"]):
+    def plot(self, qscans: list["gwpy.spectrogram.Spectrogram"]):
+        num_ifos = len(self.analyzer.ifos)
+        qscans_per_ifo = len(qscans) // num_ifos
         fig = Plot(
             *qscans,
-            figsize=(10, 5),
-            geometry=(1, len(self.analyzer.ifos)),
+            figsize=(10 * qscans_per_ifo, 6 * num_ifos),
+            geometry=(num_ifos, qscans_per_ifo),
             yscale="log",
             method="pcolormesh",
             cmap="viridis",
         )
-        for i, ax in enumerate(fig.axes):
+        for ax in fig.axes:
             from matplotlib import ticker
 
             # TODO: account for half second somewhere
             ax.set_epoch(0.5)
-            ax.set_title(self.analyzer.ifos[i])
+            # ax.set_title(self.analyzer.ifos[i])
             ax.set_xlabel("Time [s]")
             ax.set_ylabel("Frequency [Hz]")
             ax.xaxis.set_major_formatter(
                 ticker.FuncFormatter(lambda x, p: f"{x:.1f}")
             )
 
-            if i == len(self.analyzer.ifos) - 1:
-                fig.colorbar(ax=ax, label="Normalized energy")
+            # if i == len(self.analyzer.ifos) - 1:
+            #    fig.colorbar(ax=ax, label="Normalized energy")
 
         # save image png in memory so that
         # we can pass it to bokeh to plot
